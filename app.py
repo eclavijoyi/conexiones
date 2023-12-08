@@ -46,6 +46,7 @@ def resultados():
     ).group_by(Vendedor.Nombre).order_by(db.desc('total')).all()
 
     return render_template('resultados.html', results=results)
+    db.session.close()
 
 if __name__ == '__main__':
     with app.app_context():
