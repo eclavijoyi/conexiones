@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 from datetime import datetime
 import os
+import time
+import mysql.connector
 
 load_dotenv()
 
@@ -12,6 +14,33 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
     f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
 )
 db = SQLAlchemy(app)
+
+# Configuración de MySQL
+mysql_host = os.getenv('DB_HOST')
+mysql_port = int(os.getenv('DB_PORT'))
+mysql_user = os.getenv('DB_USER')
+mysql_password = os.getenv('DB_PASSWORD')
+mysql_db = os.getenv('DB_NAME')
+
+# Función para esperar la disponibilidad de MySQL
+def wait_for_mysql(host, port, user, password, database, max_attempts=30, sleep_time=5):
+    attempts = 0
+    while attempts < max_attempts:
+        try:
+            # Intentar conectarse a MySQL
+            mysql.connector.connect(host=host, port=port, user=user, password=password, database=database)
+            print("MySQL is available. Connecting...")
+            return
+        except mysql.connector.Error as e:
+            print(f"MySQL is not yet available. Retrying... ({e})")
+            attempts += 1
+            time.sleep(sleep_time)
+
+    print("Unable to connect to MySQL. Exiting.")
+    exit(1)
+
+# Esperar hasta que MySQL esté disponible
+wait_for_mysql(mysql_host, mysql_port, mysql_user, mysql_password, mysql_db)
 
 class Comision(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -51,4 +80,5 @@ def resultados():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        print(app.config['SQLALCHEMY_DATABASE_URI'])
     app.run(host='0.0.0.0', port=5000)
